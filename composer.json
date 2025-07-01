@@ -1,56 +1,56 @@
 {
-    "name": "vermaysha/pgbouncer-laravel-extension",
-    "version": "0.0.1-beta1",
-    "description": "A Laravel extension to support PgBouncer with emulated prepared statements for PostgreSQL connections.",
-    "keywords": [
-        "laravel",
-        "postgresql",
-        "pgsql",
-        "pgbouncer",
-        "database"
-    ],
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Vermaysha",
-            "email": "your-email@example.com"
-        }
-    ],
-    "require": {
-        "php": "^8.1",
-        "illuminate/database": "^10.0 || ^11.0 || ^12.0",
-        "illuminate/support": "^10.0 || ^11.0 || ^12.0"
-    },
-    "require-dev": {
-        "orchestra/testbench": "^8.0 || ^9.0",
-        "phpunit/phpunit": "^10.0 || ^11.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Vermaysha\\PgbouncerLaravelExtension\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Vermaysha\\PgbouncerLaravelExtension\\Tests\\": "tests/",
-            "Vermaysha\\PgbouncerLaravelExtension\\Tests\\App\\": "tests/app/"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Vermaysha\\PgbouncerLaravelExtension\\PgbouncerExtensionServiceProvider"
-            ]
-        }
-    },
-    "config": {
-        "sort-packages": true
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "scripts": {
-        "test": "vendor/bin/phpunit",
-        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+  "name": "vermaysha/pgbouncer-laravel-extension",
+  "version": "0.0.2-beta.1",
+  "description": "A Laravel extension to support PgBouncer with emulated prepared statements for PostgreSQL connections.",
+  "keywords": [
+    "laravel",
+    "postgresql",
+    "pgsql",
+    "pgbouncer",
+    "database"
+  ],
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Vermaysha",
+      "email": "your-email@example.com"
     }
+  ],
+  "require": {
+    "php": "^8.1",
+    "illuminate/database": "^10.0 || ^11.0 || ^12.0",
+    "illuminate/support": "^10.0 || ^11.0 || ^12.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^8.0 || ^9.0",
+    "phpunit/phpunit": "^10.0 || ^11.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Vermaysha\\PgbouncerLaravelExtension\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Vermaysha\\PgbouncerLaravelExtension\\Tests\\": "tests/",
+      "Vermaysha\\PgbouncerLaravelExtension\\Tests\\App\\": "tests/app/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Vermaysha\\PgbouncerLaravelExtension\\PgbouncerExtensionServiceProvider"
+      ]
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+  }
 }
