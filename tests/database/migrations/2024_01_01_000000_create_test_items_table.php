@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(false);
             $table->timestamp('activated_at')->nullable();
             $table->json('options')->nullable();
+            $table->json('metadata')->nullable();
             $table->timestamps();
         });
     }

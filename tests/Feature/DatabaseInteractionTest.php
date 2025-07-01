@@ -4,6 +4,7 @@ namespace Vermaysha\PgbouncerLaravelExtension\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PDO;
 use PHPUnit\Framework\Attributes\Test;
 use Vermaysha\PgbouncerLaravelExtension\Tests\App\Models\TestItem;
 use Vermaysha\PgbouncerLaravelExtension\Tests\TestCase;
@@ -23,7 +24,7 @@ class DatabaseInteractionTest extends TestCase
             'price' => 19.99,
             'is_active' => true,
             'activated_at' => $now,
-            'options' => json_encode(['color' => 'red', 'size' => 'M']),
+            'options' => ['color' => 'red', 'size' => 'M'],
             'created_at' => $now,
             'updated_at' => $now,
         ]);

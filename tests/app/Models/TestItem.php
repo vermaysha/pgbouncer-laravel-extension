@@ -29,6 +29,7 @@ class TestItem extends Model
         'is_active',
         'activated_at',
         'options',
+        'metadata',
     ];
 
     /**

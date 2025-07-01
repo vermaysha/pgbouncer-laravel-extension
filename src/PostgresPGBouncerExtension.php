@@ -13,10 +13,11 @@ use PDO;
 class PostgresPGBouncerExtension extends PostgresConnection
 {
     /**
-     * Bind values to their parameters in the given statement.
+     * Bind values to the PDOStatement.
      *
-     * This override ensures that boolean values are correctly cast to strings ('true'/'false')
-     * before being bound, which is necessary for PgBouncer in certain modes.
+     * We override the original bindValues method from the parent class to handle
+     * booleans correctly. Since we cast booleans to strings in prepareBindings,
+     * we need to use PDO::PARAM_STR to bind them.
      *
      * @param  \PDOStatement  $statement
      * @param  array  $bindings
@@ -40,10 +41,10 @@ class PostgresPGBouncerExtension extends PostgresConnection
     }
 
     /**
-     * Prepare the query bindings for execution.
+     * Prepare the bindings for the query.
      *
-     * This override converts boolean values to their string representation ('true' or 'false')
-     * because PgBouncer with emulated prepares might not handle native booleans correctly.
+     * This method will cast booleans to strings ('true'/'false') which is necessary
+     * for PgBouncer in certain modes.
      *
      * @param  array  $bindings
      * @return array
@@ -53,13 +54,14 @@ class PostgresPGBouncerExtension extends PostgresConnection
         $grammar = $this->getQueryGrammar();
 
         foreach ($bindings as $key => $value) {
-            // We need to transform all instances of DateTimeInterface into the actual
-            // date string. Each query grammar maintains its own date string format
-            // so we'll just ask the grammar for the format to get from the date.
             if ($value instanceof DateTimeInterface) {
                 $bindings[$key] = $value->format($grammar->getDateFormat());
             } elseif (is_bool($value)) {
                 $bindings[$key] = $value ? 'true' : 'false';
+            } elseif (is_array($value)) {
+                $bindings[$key] = json_encode($value);
+            } elseif (is_object($value) && method_exists($value, '__toString')) {
+                $bindings[$key] = (string) $value;
             }
         }
 
