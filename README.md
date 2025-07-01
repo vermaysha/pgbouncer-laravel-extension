@@ -67,7 +67,9 @@ composer test
 
 Alternatively, you can run phpunit directly:
 
+```bash
 vendor/bin/phpunit
+```
 
 Contributing
 Contributions are welcome! Please feel free to submit a pull request or create an issue for any bugs or feature requests.
