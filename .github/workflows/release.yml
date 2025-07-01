@@ -4,27 +4,25 @@ on:
   # Memungkinkan workflow ini dijalankan secara manual dari tab Actions
   workflow_dispatch:
     inputs:
-      version_type:
-        description: 'Jenis rilis (major, minor, atau patch)'
+      version_bump:
+        description: "Jenis kenaikan versi (sesuai standar npm version)"
         required: true
         type: choice
         options:
           - patch
           - minor
           - major
-        default: 'patch'
-      is_prerelease:
-        description: 'Tandai sebagai pre-release (misal: v1.0.0-beta.1)?'
-        required: true
-        type: boolean
-        default: false
+          - prepatch
+          - preminor
+          - premajor
+          - prerelease
+        default: "patch"
 
 jobs:
   release:
     name: Bump Version and Create Release
     runs-on: ubuntu-latest
-    
-    # Izin diperlukan untuk membuat commit, tag, dan release
+
     permissions:
       contents: write
 
@@ -32,75 +30,51 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Ambil semua histori untuk bisa membuat catatan rilis
           fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
-      - name: Bump version and generate tag
-        id: tag_version
-        run: |
-          # 1. BACA VERSI SAAT INI DARI COMPOSER.JSON
-          current_version=$(jq -r .version composer.json)
-          echo "Current version from composer.json: $current_version"
-
-          # PERBAIKAN: Hapus akhiran pre-release (misal: -beta.1) sebelum perhitungan
-          core_version=$(echo "$current_version" | cut -d'-' -f1)
-          echo "Core version for calculation: $core_version"
-
-          # 2. HITUNG VERSI BARU BERDASARKAN INPUT
-          IFS='.' read -r -a version_parts <<< "$core_version"
-          major=${version_parts[0]}
-          minor=${version_parts[1]}
-          patch=${version_parts[2]}
-
-          case "${{ github.event.inputs.version_type }}" in
-            major)
-              major=$((major + 1))
-              minor=0
-              patch=0
-              ;;
-            minor)
-              minor=$((minor + 1))
-              patch=0
-              ;;
-            patch)
-              patch=$((patch + 1))
-              ;;
-          esac
-
-          new_version="$major.$minor.$patch"
-
-          # 3. TAMBAHKAN SUFFIX PRE-RELEASE JIKA DIPILIH
-          if [[ "${{ github.event.inputs.is_prerelease }}" == "true" ]]; then
-            new_version="$new_version-beta.1"
-          fi
-          
-          echo "New version: $new_version"
-          echo "new_version=$new_version" >> $GITHUB_OUTPUT
-
-      - name: Update composer.json
-        run: |
-          # Gunakan jq untuk memperbarui versi di composer.json dengan rapi
-          jq '.version = "${{ steps.tag_version.outputs.new_version }}"' composer.json > composer.json.tmp && mv composer.json.tmp composer.json
-          
-      - name: Commit and push version bump
+      - name: Configure Git
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add composer.json
-          git commit -m "chore: Bump version to ${{ steps.tag_version.outputs.new_version }}"
+
+      - name: Synchronize package.json from composer.json
+        run: |
+          # Pastikan package.json selalu sinkron sebelum menaikkan versi
+          COMPOSER_VERSION=$(jq -r .version composer.json)
+          npm version --no-git-tag-version --allow-same-version "$COMPOSER_VERSION"
+
+      - name: Bump version using npm
+        id: bump_version
+        run: |
+          # Naikkan versi di package.json. --no-git-tag-version mencegah npm membuat tag git sendiri.
+          BUMPED_VERSION=$(npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version)
+          # Hapus 'v' di depan (npm menambahkannya)
+          BUMPED_VERSION=${BUMPED_VERSION#v}
+          echo "BUMPED_VERSION=$BUMPED_VERSION" >> $GITHUB_OUTPUT
+          echo "Version bumped to $BUMPED_VERSION"
+
+      - name: Synchronize composer.json from package.json
+        run: |
+          # Perbarui versi di composer.json agar sama dengan package.json yang baru
+          jq '.version = "${{ steps.bump_version.outputs.BUMPED_VERSION }}"' composer.json > composer.json.tmp && mv composer.json.tmp composer.json
+
+      - name: Commit and push version bump
+        run: |
+          git add composer.json package.json
+          git commit -m "chore: Bump version to ${{ steps.bump_version.outputs.BUMPED_VERSION }}"
           git push
 
       - name: Create Git Tag & Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ steps.tag_version.outputs.new_version }}"
+          tag_name: "v${{ steps.bump_version.outputs.BUMPED_VERSION }}"
           generate_release_notes: true
-          prerelease: ${{ github.event.inputs.is_prerelease }}
+          # Secara otomatis mendeteksi jika ini adalah pre-release dari nama versi
+          prerelease: ${{ contains(steps.bump_version.outputs.BUMPED_VERSION, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
