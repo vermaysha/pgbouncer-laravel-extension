@@ -14,7 +14,7 @@ on:
           - major
         default: 'patch'
       is_prerelease:
-        description: 'Tandai sebagai pre-release (misal: v1.0.0-beta.x)?'
+        description: 'Tandai sebagai pre-release (misal: v1.0.0-beta.1)?'
         required: true
         type: boolean
         default: false
@@ -24,6 +24,7 @@ jobs:
     name: Bump Version and Create Release
     runs-on: ubuntu-latest
     
+    # Izin diperlukan untuk membuat commit, tag, dan release
     permissions:
       contents: write
 
@@ -31,68 +32,59 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Ambil semua histori untuk bisa membuat catatan rilis dan tag
+          # Ambil semua histori untuk bisa membuat catatan rilis
           fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Bump version and generate tag
         id: tag_version
         run: |
           # 1. BACA VERSI SAAT INI DARI COMPOSER.JSON
-          # Pastikan file composer.json ada dan memiliki kunci 'version'
-          if [ ! -f composer.json ]; then echo "composer.json not found!"; exit 1; fi
           current_version=$(jq -r .version composer.json)
-          if [ "$current_version" == "null" ]; then echo "Version key not found in composer.json!"; exit 1; fi
-          echo "Current version: $current_version"
+          echo "Current version from composer.json: $current_version"
 
-          # 2. HITUNG VERSI DASAR BARU BERDASARKAN INPUT
-          IFS='.' read -r -a version_parts <<< "$current_version"
+          # PERBAIKAN: Hapus akhiran pre-release (misal: -beta.1) sebelum perhitungan
+          core_version=$(echo "$current_version" | cut -d'-' -f1)
+          echo "Core version for calculation: $core_version"
+
+          # 2. HITUNG VERSI BARU BERDASARKAN INPUT
+          IFS='.' read -r -a version_parts <<< "$core_version"
           major=${version_parts[0]}
           minor=${version_parts[1]}
-          patch=$(echo "${version_parts[2]}" | sed 's/-.*//') # Hapus suffix beta jika ada
+          patch=${version_parts[2]}
 
           case "${{ github.event.inputs.version_type }}" in
             major)
-              major=$((major + 1)); minor=0; patch=0
+              major=$((major + 1))
+              minor=0
+              patch=0
               ;;
             minor)
-              minor=$((minor + 1)); patch=0
+              minor=$((minor + 1))
+              patch=0
               ;;
             patch)
               patch=$((patch + 1))
               ;;
           esac
 
-          new_base_version="$major.$minor.$patch"
-          new_version="$new_base_version"
+          new_version="$major.$minor.$patch"
 
-          # 3. LOGIKA UNTUK VERSI BETA BERURUTAN
+          # 3. TAMBAHKAN SUFFIX PRE-RELEASE JIKA DIPILIH
           if [[ "${{ github.event.inputs.is_prerelease }}" == "true" ]]; then
-            echo "Pre-release detected. Finding next beta version for $new_base_version..."
-            # Ambil semua tag dari remote untuk memastikan data terbaru
-            git fetch --tags
-
-            # Cari tag beta terakhir untuk versi dasar ini
-            latest_beta_tag=$(git tag | grep "v${new_base_version}-beta" | sort -V | tail -n 1)
-
-            if [[ -z "$latest_beta_tag" ]]; then
-              # Jika tidak ada beta sebelumnya, mulai dari 1
-              echo "No existing beta found. Starting with beta.1"
-              new_version="${new_base_version}-beta.1"
-            else
-              # Jika ada, ekstrak nomornya dan tambahkan 1
-              echo "Latest beta found: $latest_beta_tag"
-              current_beta_number=$(echo "$latest_beta_tag" | sed 's/.*-beta\.//')
-              next_beta_number=$((current_beta_number + 1))
-              echo "Next beta number will be: $next_beta_number"
-              new_version="${new_base_version}-beta.${next_beta_number}"
-            fi
+            new_version="$new_version-beta.1"
           fi
           
-          echo "Final new version: $new_version"
+          echo "New version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
       - name: Update composer.json
         run: |
+          # Gunakan jq untuk memperbarui versi di composer.json dengan rapi
           jq '.version = "${{ steps.tag_version.outputs.new_version }}"' composer.json > composer.json.tmp && mv composer.json.tmp composer.json
           
       - name: Commit and push version bump
