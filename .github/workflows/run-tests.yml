@@ -1,0 +1,81 @@
+name: Run Tests
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_USER: sail
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Definisikan semua versi yang mungkin
+        php: [8.1, 8.2, 8.3, 8.4]
+        laravel: [10.*, 11.*, 12.*]
+
+        # Hapus kombinasi yang tidak valid sesuai permintaan Anda
+        exclude:
+          # Laravel 11 membutuhkan PHP 8.2+
+          - laravel: 11.*
+            php: 8.1
+          # Laravel 12 kemungkinan akan membutuhkan PHP 8.2+
+          - laravel: 12.*
+            php: 8.1
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - PostgreSQL
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-postgres-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-postgres-composer-
+
+      - name: Install Composer dependencies
+        run: |
+          # Logika ini akan memilih versi Testbench yang benar berdasarkan versi Laravel
+          # v8 untuk L10, v9 untuk L11, dst.
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:^$(echo ${{ matrix.laravel }} | cut -d'.' -f1 | awk '{print $1-2}').0" --no-interaction --no-update
+          composer update --prefer-dist --no-interaction --ignore-platform-reqs
+
+      - name: Execute tests
+        # Variabel lingkungan ini akan dibaca oleh phpunit.xml.dist dan TestCase,
+        # memastikan logika koneksi database sama dengan setup lokal Anda.
+        env:
+          DB_CONNECTION: pgsql_test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: testing
+          DB_USERNAME: sail
+          DB_PASSWORD: password
+        run: vendor/bin/phpunit

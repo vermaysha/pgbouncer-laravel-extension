@@ -1,0 +1,22 @@
+services:
+  # Nama layanan, bisa apa saja, misal 'db' atau 'postgres'
+  postgres:
+    image: 'postgres:17'
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    environment:
+      POSTGRES_DB: '${DB_DATABASE:-testing}'
+      POSTGRES_USER: '${DB_USERNAME:-sail}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
+    # volumes:
+      # (Opsional) Baris ini akan menyimpan data database Anda bahkan setelah kontainer dimatikan
+      # - ./docker/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-sail} -d ${DB_DATABASE:-testing}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres:
+    driver: local
