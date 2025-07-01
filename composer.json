@@ -1,6 +1,6 @@
 {
   "name": "vermaysha/pgbouncer-laravel-extension",
-  "version": "0.0.5-beta.2",
+  "version": "0.0.5-beta.3",
   "description": "A Laravel extension to support PgBouncer with emulated prepared statements for PostgreSQL connections.",
   "keywords": [
     "laravel",
