@@ -22,6 +22,7 @@ After installation, the only step is to configure your PostgreSQL database conne
 
 In your `config/database.php` file, find your `pgsql` connection and add the `options` key with `PDO::ATTR_EMULATE_PREPARES` set to `true`.
 
+```php
 // config/database.php
 
 'connections' => [
@@ -43,8 +44,8 @@ In your `config/database.php` file, find your `pgsql` connection and add the `op
             PDO::ATTR_EMULATE_PREPARES => true,
         ],
     ],
-
 ],
+```
 
 That's it! The service provider will detect this setting and automatically use the custom connection class for any `pgsql` connection that has emulated prepares enabled.
 
