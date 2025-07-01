@@ -1,14 +1,14 @@
 # Laravel PgBouncer Emulated Prepare Extension
 A simple Laravel extension to enable the use of PgBouncer in transaction pooling mode by correctly handling value bindings when `PDO::ATTR_EMULATE_PREPARES` is enabled for a PostgreSQL connection.
 
-The Problem
+## The Problem
 When using PgBouncer in transaction pooling mode (`pool_mode = transaction`), it does not support prepared statements. The standard solution for Laravel is to disable them by setting `PDO::ATTR_EMULATE_PREPARES` to `true` in your `config/database.php` file.
 
 However, when this option is enabled, Laravel's default `PostgresConnection` does not correctly handle boolean values, casting them to `1` or `0` instead of the required `'true'` or `'false'` strings, which leads to SQL errors.
 
 This package transparently solves this issue by providing a custom connection class that correctly handles data type conversions for emulated prepared statements.
 
-Installation
+## Installation
 You can install the package via Composer:
 
 ```bash
@@ -17,7 +17,7 @@ composer require vermaysha/pgbouncer-laravel-extension
 
 The package will automatically register its service provider.
 
-Usage
+## Usage
 After installation, the only step is to configure your PostgreSQL database connection to use emulated prepared statements.
 
 In your `config/database.php` file, find your `pgsql` connection and add the `options` key with `PDO::ATTR_EMULATE_PREPARES` set to `true`.
@@ -49,7 +49,7 @@ In your `config/database.php` file, find your `pgsql` connection and add the `op
 
 That's it! The service provider will detect this setting and automatically use the custom connection class for any `pgsql` connection that has emulated prepares enabled.
 
-Testing
+## Testing
 This package is fully tested. To run the tests locally, first set up your environment:
 
 Ensure you have Docker installed and running.
@@ -72,13 +72,13 @@ Alternatively, you can run phpunit directly:
 vendor/bin/phpunit
 ```
 
-Contributing
+## Contributing
 Contributions are welcome! Please feel free to submit a pull request or create an issue for any bugs or feature requests.
 
-Credits
+## Credits
 Author: [Ashary Vermaysha](https://github.com/vermaysha)
 
 Contributor: [Google Gemini](https://gemini.google.com)
 
-License
+## License
 The MIT License (MIT). Please see the [License File](LICENSE) for more information.
