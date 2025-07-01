@@ -1,0 +1,103 @@
+name: Manual Version Release
+
+on:
+  # Memungkinkan workflow ini dijalankan secara manual dari tab Actions
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Jenis rilis (major, minor, atau patch)'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: 'patch'
+      is_prerelease:
+        description: 'Tandai sebagai pre-release (misal: v1.0.0-beta.1)?'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    name: Bump Version and Create Release
+    runs-on: ubuntu-latest
+    
+    # Izin diperlukan untuk membuat commit, tag, dan release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Ambil semua histori untuk bisa membuat catatan rilis
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bump version and generate tag
+        id: tag_version
+        run: |
+          # 1. BACA VERSI SAAT INI DARI COMPOSER.JSON
+          current_version=$(jq -r .version composer.json)
+          echo "Current version: $current_version"
+
+          # 2. HITUNG VERSI BARU BERDASARKAN INPUT
+          IFS='.' read -r -a version_parts <<< "$current_version"
+          major=${version_parts[0]}
+          minor=${version_parts[1]}
+          patch=${version_parts[2]}
+
+          case "${{ github.event.inputs.version_type }}" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          new_version="$major.$minor.$patch"
+
+          # 3. TAMBAHKAN SUFFIX PRE-RELEASE JIKA DIPILIH
+          if [[ "${{ github.event.inputs.is_prerelease }}" == "true" ]]; then
+            new_version="$new_version-beta.1"
+          fi
+          
+          echo "New version: $new_version"
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Update composer.json
+        run: |
+          # Gunakan jq untuk memperbarui versi di composer.json dengan rapi
+          jq '.version = "${{ steps.tag_version.outputs.new_version }}"' composer.json > composer.json.tmp && mv composer.json.tmp composer.json
+          
+      - name: Commit and push version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add composer.json
+          git commit -m "chore: Bump version to ${{ steps.tag_version.outputs.new_version }}"
+          git push
+
+      - name: Create Git Tag & Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.tag_version.outputs.new_version }}"
+          generate_release_notes: true
+          prerelease: ${{ github.event.inputs.is_prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
