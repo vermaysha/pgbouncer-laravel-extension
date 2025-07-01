@@ -16,7 +16,7 @@ on:
           - preminor
           - premajor
           - prerelease
-        default: "patch"
+        default: "prerelease"
 
 jobs:
   release:
@@ -51,10 +51,18 @@ jobs:
       - name: Bump version using npm
         id: bump_version
         run: |
-          # Naikkan versi di package.json. --no-git-tag-version mencegah npm membuat tag git sendiri.
-          BUMPED_VERSION=$(npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version)
-          # Hapus 'v' di depan (npm menambahkannya)
+          BUMP_TYPE="${{ github.event.inputs.version_bump }}"
+          NPM_COMMAND="npm version $BUMP_TYPE --no-git-tag-version"
+
+          # PERBAIKAN: Tambahkan --preid=beta jika ini adalah pre-release
+          if [[ "$BUMP_TYPE" == "prerelease" || "$BUMP_TYPE" == "prepatch" || "$BUMP_TYPE" == "preminor" || "$BUMP_TYPE" == "premajor" ]]; then
+            NPM_COMMAND="$NPM_COMMAND --preid=beta"
+          fi
+
+          echo "Running command: $NPM_COMMAND"
+          BUMPED_VERSION=$($NPM_COMMAND)
           BUMPED_VERSION=${BUMPED_VERSION#v}
+          
           echo "BUMPED_VERSION=$BUMPED_VERSION" >> $GITHUB_OUTPUT
           echo "Version bumped to $BUMPED_VERSION"
 
