@@ -62,6 +62,8 @@ class PostgresPGBouncerExtension extends PostgresConnection
                 $bindings[$key] = json_encode($value);
             } elseif (is_object($value) && method_exists($value, '__toString')) {
                 $bindings[$key] = (string) $value;
+            } elseif (is_object($value)) {
+                $bindings[$key] = json_encode($value);
             }
         }
 
